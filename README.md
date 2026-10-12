@@ -84,18 +84,30 @@ journalctl -fu fprintd
 
 ## Using it for sudo, polkit and login
 
-Add this line as the first `auth` line of `/etc/pam.d/sudo`, of
+Install the lid check, so that with the lid closed (docked) the fingerprint
+step is skipped and the password prompt comes immediately:
+
+```
+sudo install -m755 scripts/fprint-lid-open /usr/local/bin/fprint-lid-open
+```
+
+Then add these two lines as the first `auth` lines of `/etc/pam.d/sudo`, of
 `/etc/pam.d/polkit-1` (copy it from `/usr/lib/pam.d/polkit-1` first) and, for
 greeters that use the `login` service, after `pam_nologin.so` in
 `/etc/pam.d/login`:
 
 ```
--auth      sufficient   pam_fprintd.so max-tries=2 timeout=10
+auth       [success=ignore default=1]  pam_exec.so quiet /usr/local/bin/fprint-lid-open
+auth       sufficient   pam_fprintd.so max-tries=2 timeout=10
 ```
 
-The password prompt follows after 10 seconds without a touch, and the leading
-`-` makes PAM skip the line if the module is missing. Keep a root shell open
-while editing PAM files.
+- Lid open: fingerprint is asked first; the password prompt follows after
+  10 seconds without a touch.
+- Lid closed: `fprint-lid-open` exits 1, `default=1` jumps over the
+  `pam_fprintd` line, and the password is asked right away.
+
+The two lines belong together: the first one skips exactly the one line after
+it. Keep a root shell open while editing PAM files.
 
 ## Troubleshooting
 

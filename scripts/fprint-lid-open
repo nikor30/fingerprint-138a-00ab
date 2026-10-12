@@ -1,0 +1,9 @@
+#!/bin/sh
+# Exit 0 if the fingerprint reader is reachable (laptop lid open), 1 if the
+# lid is closed. Used by pam_exec to skip pam_fprintd and go straight to the
+# password prompt. Unknown lid state counts as open.
+for f in ${1:-/proc/acpi/button/lid/*/state}; do
+    [ -r "$f" ] || continue
+    grep -q closed "$f" && exit 1
+done
+exit 0
